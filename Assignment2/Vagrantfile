@@ -1,0 +1,23 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.define "web" do |web|
+    web.vm.hostname = "web"
+    web.vm.box = "ubuntu/focal64"
+    web.vm.network "private_network", ip: "192.168.57.10"
+  end
+  
+  config.vm.define "app" do |app|
+    app.vm.hostname = "app"
+    app.vm.box = "ubuntu/focal64"
+    app.vm.network "private_network", ip: "192.168.57.11"
+  end
+
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.box = "ubuntu/focal64"
+    db.vm.network "private_network", ip: "192.168.57.12"
+  end
+  
+end
