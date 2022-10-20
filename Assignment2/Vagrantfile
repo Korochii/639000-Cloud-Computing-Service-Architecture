@@ -31,10 +31,11 @@ import Form from 'react-bootstrap/Form';
 import axios from 'axios';
 
 function Home() {
+    const [data, setData] = React.useState(null);
     const handleSubmit = (e) => {
       e.preventDefault();
-      const formElement = document.querySelector("form");
-      const formData = new FormData(formElement);
+      var formData = new FormData();
+      formData.append('data', data);
       axios.post('http://192.168.57.11:9000', formData)
            .then(function (response) {
               console.log(response);
@@ -43,7 +44,7 @@ function Home() {
       <Form id="form" onSubmit={handleSubmit}>
         <Form.Group className="formInput" controlId="formInput">
           <Form.Label>What have you learnt today?</Form.Label>
-          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" />
+          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" onChange={ (event) => setData(event.target.value)}/>
           <Form.Text className="text-muted">
             Enter a new japanese character/phrase you have encountered!
           </Form.Text>
@@ -154,7 +155,7 @@ EOT
       nvm install node
       npm init -y
       npm install express
-      # npm install pg # node-postgres ?
+      npm install pg # node-postgres ?
       # npm install config
       npm install express-generator -g
       express app --view=pug -y
@@ -162,11 +163,30 @@ EOT
       npm install
       npm install cors
       npm install axios
+      npm install multer --save
       sed -i "s/3000/9000/" bin/www
       sed -i "6 i var cors = require('cors');" app.js
+      sed -i "6 i var multer = require('multer');" app.js
+      sed -i "7 i var upload = multer();" app.js
       sed -i "17 i app.use(cors());" app.js
+      sed -i "18 i app.use(upload.array());" app.js
+      sed -i "18 i app.use(express.static('public'));" app.js
+
       cd routes
-      sed -i "s/get/all/" index.js
+      rm index.js
+      cat <<EOT >> index.js
+var express = require('express');
+var router = express.Router();
+
+/* GET/POST home page. */
+router.all('/', function(req, res, next) {
+  const data = req.body.data;
+  console.log(data);
+  res.send(data);
+});
+
+module.exports = router;
+EOT
       cd ..
       # npm start
     SHELL
@@ -176,6 +196,18 @@ EOT
     db.vm.hostname = "db"
     db.vm.box = "ubuntu/focal64"
     db.vm.network "private_network", ip: "192.168.57.12"
+    db.vm.network "forwarded_port", guest: 5432, host: 5433
+    db.vm.provision "shell", privileged: false, inline: <<-SHELL
+      # sudo apt-get update
+      sudo apt install postgresql postgresql-contrib -y
+      sudo systemctl start postgresql.service
+      cd /etc/postgresql/12/main
+      sudo sed -i "92 i host    all             all             192.168.57.12/24        md5" pg_hba.conf
+      sudo sed -i "60 i listen_addresses = '*'         # what IP address(es) to listen on;" postgresql.conf
+      cd ~
+      sudo -u postgres createdb log
+      sudo -u postgres psql -c "CREATE TABLE log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);"
+    SHELL
   end
   
 end
