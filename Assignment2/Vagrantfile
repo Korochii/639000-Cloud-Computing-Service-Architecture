@@ -19,6 +19,7 @@ Vagrant.configure("2") do |config|
       cd web
       npm install react-router-dom 
       npm install --save styled-components
+      npm install react-bootstrap bootstrap
       cd src
       mkdir pages
       cd pages
@@ -50,12 +51,12 @@ EOT
       cat <<EOT >> Layout.jsx
 import React from "react";
 import {Outlet} from "react-router-dom";
-import Navbar from "../Navbar";
+import Navibar from "../Navbar";
 
 const Layout = () => {
   return (
     <>
-      <Navbar />
+      <Navibar />
       <Outlet />
     </>
   );
@@ -68,23 +69,26 @@ EOT
       cat <<EOT >> Navbar.jsx
 import React from "react";
 import { BrowserRouter, Route, Link } from "react-router-dom";
+import Container from 'react-bootstrap/Container';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
+import NavDropdown from 'react-bootstrap/NavDropdown';
 
-function Navbar() {
+function Navibar() {
   return (
-    <nav>
-      <ul>
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        <li>
-          <Link to="/log">Log</Link>
-        </li>
-      </ul>
-    </nav>
+    <Navbar bg="primary" variant="dark">
+        <Container>
+          <Navbar.Brand href="/">MyApp</Navbar.Brand>
+          <Nav className="me-auto">
+            <Nav.Link href="/">Home</Nav.Link>
+            <Nav.Link href="/log">Log</Nav.Link>
+          </Nav>
+        </Container>
+    </Navbar>
   );
 }
 
-export default Navbar;
+export default Navibar;
 EOT
       rm index.js
       cat <<EOT >> index.js
@@ -93,6 +97,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./pages/Layout";
 import Home from "./pages/Home";
 import Log from "./pages/Log";
+import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 
 export default function App() {
   return (
@@ -109,7 +114,7 @@ export default function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 EOT
-
+      # cd ..
       # npm start
     SHELL
   end
