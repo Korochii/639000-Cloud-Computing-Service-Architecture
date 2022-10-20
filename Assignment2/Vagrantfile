@@ -28,13 +28,22 @@ Vagrant.configure("2") do |config|
 import React from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import axios from 'axios';
 
 function Home() {
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const formElement = document.querySelector("form");
+      const formData = new FormData(formElement);
+      axios.post('http://192.168.57.11:9000', formData)
+           .then(function (response) {
+              console.log(response);
+           });};
     return (
-      <Form>
+      <Form id="form" onSubmit={handleSubmit}>
         <Form.Group className="formInput" controlId="formInput">
           <Form.Label>What have you learnt today?</Form.Label>
-          <Form.Control as="textarea" rows={3} placeholder="Type here~" />
+          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" />
           <Form.Text className="text-muted">
             Enter a new japanese character/phrase you have encountered!
           </Form.Text>
@@ -152,9 +161,13 @@ EOT
       cd app
       npm install
       npm install cors
+      npm install axios
       sed -i "s/3000/9000/" bin/www
       sed -i "6 i var cors = require('cors');" app.js
       sed -i "17 i app.use(cors());" app.js
+      cd routes
+      sed -i "s/get/all/" index.js
+      cd ..
       # npm start
     SHELL
   end
