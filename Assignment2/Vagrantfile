@@ -26,10 +26,24 @@ Vagrant.configure("2") do |config|
       touch Home.jsx
       cat <<EOT >> Home.jsx
 import React from 'react';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
 
 function Home() {
     return (
-        <h1>this is the homepage</h1>
+      <Form>
+        <Form.Group className="formInput" controlId="formInput">
+          <Form.Label>What have you learnt today?</Form.Label>
+          <Form.Control as="textarea" rows={3} placeholder="Type here~" />
+          <Form.Text className="text-muted">
+            Enter a new japanese character/phrase you have encountered!
+          </Form.Text>
+        </Form.Group>
+        
+        <Button variant="primary" type="submit">
+          Submit
+        </Button>
+      </Form>
     );
 }
 
