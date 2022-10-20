@@ -8,9 +8,109 @@ Vagrant.configure("2") do |config|
     web.vm.network "forwarded_port", guest: 80, host: 8080
     web.vm.network "private_network", ip: "192.168.57.10"
     web.vm.synced_folder "./web", "/var/www/html/"
-    web.vm.provision "shell", inline: <<-SHELL
-      apt-get update
-      apt-get install nginx -y
+    web.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get -y install build-essential libssl-dev
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      source ~/.nvm/nvm.sh
+      nvm install node
+      npm install axios
+      npx create-react-app web
+      cd web
+      npm install react-router-dom 
+      npm install --save styled-components
+      cd src
+      mkdir pages
+      cd pages
+      touch Home.jsx
+      cat <<EOT >> Home.jsx
+import React from 'react';
+
+function Home() {
+    return (
+        <h1>this is the homepage</h1>
+    );
+}
+
+export default Home;
+EOT
+      touch Log.jsx
+      cat <<EOT >> Log.jsx
+import React from 'react';
+
+function Log() {
+    return (
+        <h1>this is the log</h1>
+    );
+}
+
+export default Log;
+EOT
+      touch Layout.jsx
+      cat <<EOT >> Layout.jsx
+import React from "react";
+import {Outlet} from "react-router-dom";
+import Navbar from "../Navbar";
+
+const Layout = () => {
+  return (
+    <>
+      <Navbar />
+      <Outlet />
+    </>
+  );
+};
+
+export default Layout;
+EOT
+      cd ..
+      touch Navbar.jsx
+      cat <<EOT >> Navbar.jsx
+import React from "react";
+import { BrowserRouter, Route, Link } from "react-router-dom";
+
+function Navbar() {
+  return (
+    <nav>
+      <ul>
+        <li>
+          <Link to="/">Home</Link>
+        </li>
+        <li>
+          <Link to="/log">Log</Link>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+export default Navbar;
+EOT
+      rm index.js
+      cat <<EOT >> index.js
+import ReactDOM from "react-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./pages/Layout";
+import Home from "./pages/Home";
+import Log from "./pages/Log";
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="log" element={<Log />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+EOT
+
+      # npm start
     SHELL
   end
   
@@ -20,27 +120,23 @@ Vagrant.configure("2") do |config|
     app.vm.network "private_network", ip: "192.168.57.11"
     app.vm.provision "shell", privileged: false, inline: <<-SHELL
       sudo apt-get update
-      apt-get -y install build-essential libssl-dev
+      sudo apt-get -y install build-essential libssl-dev
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       source ~/.nvm/nvm.sh
       nvm install node
       npm init -y
       npm install express
-      npm install -g nodemon
+      # npm install pg # node-postgres ?
+      # npm install config
+      npm install express-generator -g
+      express app --view=pug -y
+      cd app
+      npm install
       npm install cors
-      npm install pg # node-postgres ?
-      touch app.js
-      cat > app.js << EOF
-        const express = require('express');
-
-        const app = express();
-        
-        app.get('/', (req, res) => res.send('Hello world!'));
-        
-        const port = process.env.PORT || 8082;
-        
-        app.listen(port, () => console.log(`Server running on port ${port}`));
-EOF
+      sed -i "s/3000/9000/" bin/www
+      sed -i "6 i var cors = require('cors');" app.js
+      sed -i "17 i app.use(cors());" app.js
+      # npm start
     SHELL
   end
 
