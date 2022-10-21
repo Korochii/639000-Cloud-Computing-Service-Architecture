@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
     web.vm.network "private_network", ip: "192.168.57.10"
     web.vm.synced_folder "./web", "/var/www/html/"
     web.vm.provision "shell", privileged: false, inline: <<-SHELL
-      # sudo apt-get update
+      sudo apt-get update
       sudo apt-get -y install build-essential libssl-dev
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       source ~/.nvm/nvm.sh
@@ -29,26 +29,24 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import axios from 'axios';
-import {Link, Routes, Route, useNavigate} from 'react-router-dom';
 
 function Home() {
     const [data, setData] = React.useState(null);
-    const navigate = useNavigate();
     const handleSubmit = (e) => {
       e.preventDefault();
       var formData = new FormData();
       formData.append('data', data);
+      setData("");
       axios.post('http://192.168.57.11:9000', formData)
            .then(function (response) {
               console.log(response);
            });
-      navigate('/log');
     };
     return (
       <Form id="form" onSubmit={handleSubmit}>
         <Form.Group className="formInput" controlId="formInput">
           <Form.Label>What have you learnt today?</Form.Label>
-          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" onChange={ (event) => setData(event.target.value)}/>
+          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" value={data} onChange={ (event) => setData(event.target.value)}/>
           <Form.Text className="text-muted">
             Enter a new japanese character/phrase you have encountered!
           </Form.Text>
@@ -66,10 +64,40 @@ EOT
       touch Log.jsx
       cat <<EOT >> Log.jsx
 import React from 'react';
+import Table from 'react-bootstrap/Table';
 
 function Log() {
+    const [entry, setEntry] = React.useState([]);
+    const getData = async () => {
+            const response = await fetch("http://192.168.57.11:9000");
+            setEntry(await response.json());
+    }
+    React.useEffect(() => {
+            getData();
+    }, []);
+
     return (
-        <h1>this is the log</h1>
+            <div>
+            <Table striped bordered hover>
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Input Text (日本語)</th>
+                              <th>Translated Text (English)</th>
+                            </tr>
+                          </thead>
+            {entry.map(e => {
+                return (<tbody>
+                          <tr>
+                            <td>{e.id}</td>
+                            <td>{e.japinput}</td>
+                            <td>{e.engoutput}</td>
+                          </tr>
+                        </tbody>
+                );
+            })}
+            </Table>
+            </div>
     );
 }
 
@@ -96,17 +124,15 @@ EOT
       touch Navbar.jsx
       cat <<EOT >> Navbar.jsx
 import React from "react";
-import { BrowserRouter, Route, Link } from "react-router-dom";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
 
 function Navibar() {
   return (
     <Navbar bg="primary" variant="dark">
         <Container>
-          <Navbar.Brand href="/">MyApp</Navbar.Brand>
+          <Navbar.Brand href="/">KoroLearn</Navbar.Brand>
           <Nav className="me-auto">
             <Nav.Link href="/">Home</Nav.Link>
             <Nav.Link href="/log">Log</Nav.Link>
@@ -142,8 +168,8 @@ export default function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 EOT
-      # cd ..
-      # npm start
+      cd ..
+      npm start 2>/dev/null 1>/dev/null &
     SHELL
   end
   
@@ -152,19 +178,18 @@ EOT
     app.vm.box = "ubuntu/focal64"
     app.vm.network "private_network", ip: "192.168.57.11"
     app.vm.provision "shell", privileged: false, inline: <<-SHELL
-      # sudo apt-get update
+      sudo apt-get update
       sudo apt-get -y install build-essential libssl-dev
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
       source ~/.nvm/nvm.sh
       nvm install node
       npm init -y
       npm install express
-      # npm install config
       npm install express-generator -g
       express app --view=pug -y
       cd app
       npm install
-      npm install pg # node-postgres ?
+      npm install pg
       npm install cors
       npm install axios
       npm install multer --save
@@ -225,7 +250,7 @@ router.get('/', function(req, res, next) {
 module.exports = router;
 EOT
       cd ..
-      # npm start
+      npm start 2>/dev/null 1>/dev/null &
     SHELL
   end
 
@@ -235,7 +260,7 @@ EOT
     db.vm.network "private_network", ip: "192.168.57.12"
     db.vm.network "forwarded_port", guest: 5432, host: 5433
     db.vm.provision "shell", privileged: false, inline: <<-SHELL
-      # sudo apt-get update
+      sudo apt-get update
       sudo apt install postgresql postgresql-contrib -y
       sudo systemctl start postgresql.service
       cd /etc/postgresql/12/main
