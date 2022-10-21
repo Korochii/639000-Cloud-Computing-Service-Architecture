@@ -169,7 +169,28 @@ export default function App() {
 ReactDOM.render(<App />, document.getElementById("root"));
 EOT
       cd ..
-      npm start 2>/dev/null 1>/dev/null &
+      screen -dm npm start
+    SHELL
+  end
+  
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.box = "ubuntu/focal64"
+    db.vm.network "private_network", ip: "192.168.57.12"
+    db.vm.network "forwarded_port", guest: 5432, host: 5433
+    db.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt install postgresql postgresql-contrib -y
+      sudo systemctl start postgresql.service
+      cd /etc/postgresql/12/main
+      sudo sed -i "92 i host    all             all             192.168.57.12/24        md5" pg_hba.conf
+      sudo sed -i "s#1\/128#0\/0#" pg_hba.conf
+      sudo sed -i "60 i listen_addresses = '*'         # what IP address(es) to listen on;" postgresql.conf
+      cd ~
+      sudo -u postgres createdb log
+      sudo -u postgres psql log -c "CREATE TABLE log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);"
+      sudo -u postgres psql log -c "ALTER USER postgres PASSWORD 'password';"
+      sudo service postgresql restart
     SHELL
   end
   
@@ -250,28 +271,7 @@ router.get('/', function(req, res, next) {
 module.exports = router;
 EOT
       cd ..
-      npm start 2>/dev/null 1>/dev/null &
-    SHELL
-  end
-
-  config.vm.define "db" do |db|
-    db.vm.hostname = "db"
-    db.vm.box = "ubuntu/focal64"
-    db.vm.network "private_network", ip: "192.168.57.12"
-    db.vm.network "forwarded_port", guest: 5432, host: 5433
-    db.vm.provision "shell", privileged: false, inline: <<-SHELL
-      sudo apt-get update
-      sudo apt install postgresql postgresql-contrib -y
-      sudo systemctl start postgresql.service
-      cd /etc/postgresql/12/main
-      sudo sed -i "92 i host    all             all             192.168.57.12/24        md5" pg_hba.conf
-      sudo sed -i "s#1\/128#0\/0#" pg_hba.conf
-      sudo sed -i "60 i listen_addresses = '*'         # what IP address(es) to listen on;" postgresql.conf
-      cd ~
-      sudo -u postgres createdb log
-      sudo -u postgres psql log -c "CREATE TABLE log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);"
-      sudo -u postgres psql log -c "ALTER USER postgres PASSWORD 'password';"
-      sudo service postgresql restart
+      screen -dm npm start
     SHELL
   end
   
