@@ -6,25 +6,73 @@ Vagrant.configure("2") do |config|
     minio.vm.hostname = "minio"
     minio.vm.box = "ubuntu/focal64"
     minio.vm.network "private_network", ip: "192.168.57.13"
+    minio.vm.network "forwarded_port", guest: 9090, host: 9090
+    minio.vm.network "forwarded_port", guest: 9000, host: 9000
     minio.vm.provision "shell", privileged: false, inline: <<-SHELL
       sudo apt-get update
       sudo apt-get upgrade -y
       wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20221029062133.0.0_amd64.deb -O minio.deb
       sudo dpkg -i minio.deb
-      mkdir ~/minio
-      screen -dm minio server ~/minio --console-address :9090
+      mkdir ~/local
+      screen -dm minio server ~/local --console-address :9090
       wget https://dl.min.io/client/mc/release/linux-amd64/mc
       chmod +x mc
       sudo mv mc /usr/local/bin/mc
       mc alias set local http://192.168.57.13:9000 minioadmin minioadmin
       mc admin info local
-      mc mb myminio/static
-      mc anonymous set public myminio/static
-      cd myminio/static
+      sudo apt-get -y install build-essential libssl-dev
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      source ~/.nvm/nvm.sh
+      nvm install node
+      npm install --save minio
       wget https://files.tofugu.com/articles/japanese/2016-04-05-hiragana-chart/hiragana-chart-by-tofugu.jpg -O hiragana.jpg
       wget https://files.tofugu.com/articles/japanese/2017-07-13-katakana-chart/katakana-chart-by-tofugu.jpg -O katakana.jpg
-      cd ../..
-      mc anonymous set download myminio/static
+      cat <<EOT >> upload.js
+var Minio = require('minio')
+
+// Instantiate the minio client with the endpoint
+// and access keys as shown below.
+var minioClient = new Minio.Client({
+    endPoint: '192.168.57.13',
+    port: 9000,
+    useSSL: false,
+    accessKey: 'minioadmin',
+    secretKey: 'minioadmin'
+});
+
+// File that needs to be uploaded.
+var file1 = 'hiragana.jpg'
+var file2 = 'katakana.jpg'
+
+// Make a bucket called pictures.
+minioClient.makeBucket('pictures', 'us-east-1', function(err) {
+    if (err) return console.log(err)
+
+    console.log('Bucket created successfully in "us-east-1".')
+
+    var metaData = {
+        'Content-Type': 'application/octet-stream',
+        'X-Amz-Meta-Testing': 1234,
+        'example': 5678
+    }
+    // Using fPutObject API upload files to pictures bucket.
+    minioClient.fPutObject('pictures', 'hiragana.jpg', file1, metaData, function(err, etag) {
+      if (err) return console.log(err)
+      console.log('File uploaded successfully.')
+    });
+    minioClient.fPutObject('pictures', 'katakana.jpg', file2, metaData, function(err, etag) {
+      if (err) return console.log(err)
+      console.log('File uploaded successfully.')
+    });
+});
+EOT
+    node upload.js
+      # mc mb local/static
+      # mc anonymous set public local/static
+      # cd local/static
+      
+      # cd ../..
+      # mc anonymous set download local/static
     SHELL
   end
 
