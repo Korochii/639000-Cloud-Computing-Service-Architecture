@@ -1,0 +1,375 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.define "minio" do |minio|
+    minio.vm.hostname = "minio"
+    minio.vm.box = "ubuntu/focal64"
+    minio.vm.network "private_network", ip: "192.168.57.13"
+    minio.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get upgrade -y
+      wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20221029062133.0.0_amd64.deb -O minio.deb
+      sudo dpkg -i minio.deb
+      mkdir ~/minio
+      screen -dm minio server ~/minio --console-address :9090
+      wget https://dl.min.io/client/mc/release/linux-amd64/mc
+      chmod +x mc
+      sudo mv mc /usr/local/bin/mc
+      mc alias set local http://192.168.57.13:9000 minioadmin minioadmin
+      mc admin info local
+      mc mb myminio/static
+      mc anonymous set public myminio/static
+      cd myminio/static
+      wget https://files.tofugu.com/articles/japanese/2016-04-05-hiragana-chart/hiragana-chart-by-tofugu.jpg -O hiragana.jpg
+      wget https://files.tofugu.com/articles/japanese/2017-07-13-katakana-chart/katakana-chart-by-tofugu.jpg -O katakana.jpg
+      cd ../..
+      mc anonymous set download myminio/static
+    SHELL
+  end
+
+  config.vm.define "web" do |web|
+    web.vm.hostname = "web"
+    web.vm.box = "ubuntu/focal64" 
+    web.vm.network "forwarded_port", guest: 80, host: 8080
+    web.vm.network "private_network", ip: "192.168.57.10"
+    web.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get -y install build-essential libssl-dev
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      source ~/.nvm/nvm.sh
+      nvm install 18.12.0
+      npm install axios
+      npx create-react-app web
+      cd web
+      npm install react-router-dom 
+      npm install --save styled-components
+      npm install react-bootstrap bootstrap
+      npm install --save-dev react-app-rewired
+      npm install --save buffer
+      npm install --save stream-browserify
+      npm install --save path-browserify
+      npm install --save stream-http
+      npm install --save url
+      npm install --save https-browserify
+      npm install --save crypto-browserify
+      npm install --save timers-browserify
+      npm install --save os-browserify
+      npm install --save browserify-fs
+      npm install --save process
+      npm install --save assert
+      npm install --save minio
+      cat <<EOT >> config-overrides.js
+const webpack = require('webpack');
+module.exports = function override(config) {
+                const fallback = config.resolve.fallback || {};
+                Object.assign(fallback, {
+        "crypto": require.resolve("crypto-browserify"),
+      "stream": require.resolve("stream-browserify"),
+      "http": require.resolve("stream-http"),
+      "https": require.resolve("https-browserify"),
+      "os": require.resolve("os-browserify"),
+      "buffer": require.resolve("buffer"),
+      "timers": require.resolve("timers-browserify"),
+      "path": require.resolve("path-browserify"),
+      "https": require.resolve("https-browserify"),
+      "fs": require.resolve("browserify-fs"),
+      "process": require.resolve("process/browser"),
+      })
+    config.resolve.fallback = fallback;
+    config.plugins = (config.plugins || []).concat([
+        new webpack.ProvidePlugin({
+        process: 'process/browser',
+      Buffer: ['buffer', 'Buffer']
+    })
+    ])
+
+    config.module.rules.push({
+    test: /\.m?js/,
+    resolve: {
+        fullySpecified: false
+    }
+})
+
+    return config; }
+EOT
+      sudo sed -i "s#react-scripts start#react-app-rewired start#" package.json
+      sudo sed -i "s#react-scripts build#react-app-rewired build#" package.json
+      sudo sed -i "s#react-scripts test#react-app-rewired test#" package.json
+      cd src
+      mkdir pages
+      cd pages
+      touch Home.jsx
+      cat <<EOT >> Home.jsx
+import React from 'react';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import axios from 'axios';
+import * as minio from 'minio';
+
+function Home() {
+    const [data, setData] = React.useState(null);
+    const [buckets, setBuckets] = React.useState(null);
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      var formData = new FormData();
+      formData.append('data', data);
+      setData("");
+      axios.post('http://192.168.57.11:9000', formData)
+           .then(function (response) {
+              console.log(response);
+           });
+    };
+
+    React.useEffect(() => {
+      const getBuckets = async () => {
+        // create the client
+        const mc = new minio.Client({
+          endPoint: "192.168.57.13",
+          port: 9000,
+          useSSL: true,
+          accessKey: "minioadmin",
+          secretKey: "minioadmin"
+        });
+        // list buckets
+        const res = await mc.listBuckets();
+
+        setBuckets(res);
+      };
+      getBuckets();
+    }, []);
+
+    return (
+      <Form id="form" onSubmit={handleSubmit}>
+        <Form.Group className="formInput" controlId="formInput">
+          <Form.Label>What have you learnt today?</Form.Label>
+          <Form.Control name="input" as="textarea" rows={3} placeholder="Type here~" value={data} onChange={ (event) => setData(event.target.value)}/>
+          <Form.Text className="text-muted">
+            Enter a new japanese character/phrase you have encountered!
+          </Form.Text>
+        </Form.Group>
+        
+        <Button variant="primary" type="submit">
+          Submit
+        </Button>
+      </Form>
+    );
+}
+
+export default Home;
+EOT
+      touch Log.jsx
+      cat <<EOT >> Log.jsx
+import React from 'react';
+import Table from 'react-bootstrap/Table';
+
+function Log() {
+    const [entry, setEntry] = React.useState([]);
+    const getData = async () => {
+            const response = await fetch("http://192.168.57.11:9000");
+            setEntry(await response.json());
+    }
+    React.useEffect(() => {
+            getData();
+    }, []);
+
+    return (
+            <div>
+            <Table striped bordered hover>
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Input Text (日本語)</th>
+                              <th>Translated Text (English)</th>
+                            </tr>
+                          </thead>
+            {entry.map(e => {
+                return (<tbody>
+                          <tr>
+                            <td>{e.id}</td>
+                            <td>{e.japinput}</td>
+                            <td>{e.engoutput}</td>
+                          </tr>
+                        </tbody>
+                );
+            })}
+            </Table>
+            </div>
+    );
+}
+
+export default Log;
+EOT
+      touch Layout.jsx
+      cat <<EOT >> Layout.jsx
+import React from "react";
+import {Outlet} from "react-router-dom";
+import Navibar from "../Navbar";
+
+const Layout = () => {
+  return (
+    <>
+      <Navibar />
+      <Outlet />
+    </>
+  );
+};
+
+export default Layout;
+EOT
+      cd ..
+      touch Navbar.jsx
+      cat <<EOT >> Navbar.jsx
+import React from "react";
+import Container from 'react-bootstrap/Container';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
+
+function Navibar() {
+  return (
+    <Navbar bg="primary" variant="dark">
+        <Container>
+          <Navbar.Brand href="/">KoroLearn</Navbar.Brand>
+          <Nav className="me-auto">
+            <Nav.Link href="/">Home</Nav.Link>
+            <Nav.Link href="/log">Log</Nav.Link>
+          </Nav>
+        </Container>
+    </Navbar>
+  );
+}
+
+export default Navibar;
+EOT
+      rm index.js
+      cat <<EOT >> index.js
+import ReactDOM from "react-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout from "./pages/Layout";
+import Home from "./pages/Home";
+import Log from "./pages/Log";
+import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="log" element={<Log />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+EOT
+      cd ..
+      # screen -dm npm start
+    SHELL
+  end
+  
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.box = "ubuntu/focal64"
+    db.vm.network "private_network", ip: "192.168.57.12"
+    db.vm.network "forwarded_port", guest: 5432, host: 5433
+    db.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt install postgresql postgresql-contrib -y
+      sudo systemctl start postgresql.service
+      cd /etc/postgresql/12/main
+      sudo sed -i "92 i host    all             all             192.168.57.12/24        md5" pg_hba.conf
+      sudo sed -i "s#1\/128#0\/0#" pg_hba.conf
+      sudo sed -i "60 i listen_addresses = '*'         # what IP address(es) to listen on;" postgresql.conf
+      cd ~
+      sudo -u postgres createdb log
+      sudo -u postgres psql log -c "CREATE TABLE log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);"
+      sudo -u postgres psql log -c "ALTER USER postgres PASSWORD 'password';"
+      sudo service postgresql restart
+    SHELL
+  end
+  
+  config.vm.define "app" do |app|
+    app.vm.hostname = "app"
+    app.vm.box = "ubuntu/focal64"
+    app.vm.network "private_network", ip: "192.168.57.11"
+    app.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get -y install build-essential libssl-dev
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+      source ~/.nvm/nvm.sh
+      nvm install node
+      npm init -y
+      npm install express
+      npm install express-generator -g
+      express app --view=pug -y
+      cd app
+      npm install
+      npm install pg
+      npm install cors
+      npm install axios
+      npm install multer --save
+      npm install @vitalets/google-translate-api@8.0.0
+      sed -i "s/3000/9000/" bin/www
+      sed -i "6 i var cors = require('cors');" app.js
+      sed -i "6 i var multer = require('multer');" app.js
+      sed -i "7 i var upload = multer();" app.js
+      sed -i "17 i app.use(cors());" app.js
+      sed -i "18 i app.use(upload.array());" app.js
+      sed -i "18 i app.use(express.static('public'));" app.js
+
+      cd routes
+      rm index.js
+      cat <<'EOT' >> index.js
+var express = require('express');
+var router = express.Router();
+const { Client } = require('pg');
+
+const client = new Client({
+    user: 'postgres',
+    host: '192.168.57.12',
+    database: 'log',
+    password: 'password',
+    port: 5432,
+});
+
+client.connect();
+
+const translate = require('@vitalets/google-translate-api');
+
+/* POST home page. */
+router.post('/', function(req, res, next) {
+  const data = req.body.data;
+  translate(data, { from: 'ja', to: 'en', client: 'gtx'}).then(trans => {
+  client.query("INSERT INTO log(id, japinput, engoutput) VALUES (DEFAULT, \$1, \$2)", [data, trans.text], (err, res) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            console.log('Data insert successful');
+          });
+  console.log(data);
+  res.send(data);});
+});
+
+/* GET home page. */
+router.get('/', function(req, res, next) {
+  client.query("SELECT * FROM log", (err, result) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    processedResults = JSON.stringify(result.rows);
+    res.send(processedResults);});
+});
+
+module.exports = router;
+EOT
+      cd ..
+      screen -dm npm start
+    SHELL
+  end
+
+end
