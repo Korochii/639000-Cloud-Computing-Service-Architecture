@@ -323,7 +323,7 @@ export default function App() {
 ReactDOM.render(<App />, document.getElementById("root"));
 EOT
       cd ..
-      # screen -dm npm start
+      screen -dm npm start
     SHELL
   end
   
