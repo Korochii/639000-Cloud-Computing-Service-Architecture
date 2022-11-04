@@ -155,6 +155,7 @@ function Home() {
     const [data, setData] = React.useState(null);
     const [firstImage, setFirstImage] = React.useState(null);
     const [secondImage, setSecondImage] = React.useState(null);
+    const [buttonToggle, setButtonToggle] = React.useState(false);
 
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -165,6 +166,26 @@ function Home() {
             .then(function (response) {
               console.log(response);
             });
+    };
+
+    const handleCharts = () => {
+        if (buttonToggle) {
+                var element = document.getElementById('chart');
+                while (element.firstChild) {
+                        element.removeChild(element.firstChild);
+                }
+                setButtonToggle(false);
+        } else {
+                var hira = document.createElement("img");
+                hira.src = firstImage;
+                hira.width = "700";
+                document.getElementById('chart').appendChild(hira);
+                var kata = document.createElement("img");
+                kata.src = secondImage;
+                kata.width = "700";
+                document.getElementById('chart').appendChild(kata);
+                setButtonToggle(true);
+        }
     };
 
     const getBuckets = async () => {
@@ -190,7 +211,7 @@ function Home() {
 
     React.useEffect(() => {
       getBuckets();
-    }, [firstImage, secondImage]);
+    }, []);
 
     return (
       <>
@@ -208,8 +229,11 @@ function Home() {
         </Button>
       </Form>
       <p></p>
-        <img src={firstImage} alt="Hiragana Chart" width="700" height="auto"></img>
-        <img src={secondImage} alt="Katakana Chart" width="700" height="auto"></img>
+        <Button variant="info" onClick={handleCharts}>
+                Click here to view the Hiragana/Katakana Charts!
+        </Button>
+        <div id="chart">
+        </div>
       </>
     );
 }
