@@ -84,6 +84,7 @@ EOT
       nvm install 18.12.0
       npm install axios
       npx create-react-app web
+      npm install pm2 -g
       cd web
       npm install react-router-dom 
       npm install --save styled-components
@@ -323,7 +324,7 @@ export default function App() {
 ReactDOM.render(<App />, document.getElementById("root"));
 EOT
       cd ..
-      screen -dm npm start
+      pm2 start "npm start"
     SHELL
   end
   
@@ -361,6 +362,7 @@ EOT
       npm init -y
       npm install express
       npm install express-generator -g
+      npm install pm2 -g
       express app --view=pug -y
       cd app
       npm install
@@ -425,7 +427,7 @@ router.get('/', function(req, res, next) {
 module.exports = router;
 EOT
       cd ..
-      screen -dm npm start
+      pm2 start "npm start"
     SHELL
   end
 
