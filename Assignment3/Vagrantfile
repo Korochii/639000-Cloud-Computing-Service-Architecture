@@ -51,7 +51,7 @@ minioClient.makeBucket('pictures', 'us-east-1', function(err) {
     console.log('Bucket created successfully in "us-east-1".')
 
     var metaData = {
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': 'image',
         'X-Amz-Meta-Testing': 1234,
         'example': 5678
     }
@@ -67,12 +67,7 @@ minioClient.makeBucket('pictures', 'us-east-1', function(err) {
 });
 EOT
     node upload.js
-      # mc mb local/static
-      # mc anonymous set public local/static
-      # cd local/static
-      
-      # cd ../..
-      # mc anonymous set download local/static
+    mc anonymous set public local/pictures
     SHELL
   end
 
@@ -164,30 +159,33 @@ function Home() {
       formData.append('data', data);
       setData("");
       axios.post('http://192.168.57.11:9000', formData)
-           .then(function (response) {
+            .then(function (response) {
               console.log(response);
-           });
+            });
     };
 
-    React.useEffect(() => {
-      const getBuckets = async () => {
+    const getBuckets = async () => {
         // create the client
         const mc = new minio.Client({
           endPoint: "192.168.57.13",
           port: 9000,
-          useSSL: true,
+          useSSL: false,
           accessKey: "minioadmin",
           secretKey: "minioadmin"
         });
-        // list buckets
-        const res = await mc.listBuckets();
-
-        setBuckets(res);
+        const res = await mc.presignedGetObject("pictures", "hiragana.jpg", function(err, presignedUrl) {
+                if (err) {return console.log(err);}
+                console.log(presignedUrl);
+                setBuckets(presignedUrl);
+        });
       };
+
+    React.useEffect(() => {
       getBuckets();
     }, []);
 
     return (
+      <>
       <Form id="form" onSubmit={handleSubmit}>
         <Form.Group className="formInput" controlId="formInput">
           <Form.Label>What have you learnt today?</Form.Label>
@@ -196,11 +194,14 @@ function Home() {
             Enter a new japanese character/phrase you have encountered!
           </Form.Text>
         </Form.Group>
-        
+
         <Button variant="primary" type="submit">
           Submit
         </Button>
       </Form>
+      <p></p>
+      <img src={buckets} alt="Hiragana Chart" width="500" height="auto"></img>
+    </>
     );
 }
 
