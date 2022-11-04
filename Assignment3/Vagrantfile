@@ -136,8 +136,8 @@ module.exports = function override(config) {
 
     return config; }
 EOT
-      sudo sed -i "s#react-scripts start#react-app-rewired start#" package.json
-      sudo sed -i "s#react-scripts build#react-app-rewired build#" package.json
+      sudo sed -i "s#react-scripts start#react-app-rewired --max_old_space_size=4096 start#" package.json
+      sudo sed -i "s#react-scripts build#react-app-rewired --max_old_space_size=4096 build#" package.json
       sudo sed -i "s#react-scripts test#react-app-rewired test#" package.json
       cd src
       mkdir pages
@@ -152,7 +152,9 @@ import * as minio from 'minio';
 
 function Home() {
     const [data, setData] = React.useState(null);
-    const [buckets, setBuckets] = React.useState(null);
+    const [firstImage, setFirstImage] = React.useState(null);
+    const [secondImage, setSecondImage] = React.useState(null);
+
     const handleSubmit = (e) => {
       e.preventDefault();
       var formData = new FormData();
@@ -173,10 +175,15 @@ function Home() {
           accessKey: "minioadmin",
           secretKey: "minioadmin"
         });
-        const res = await mc.presignedGetObject("pictures", "hiragana.jpg", function(err, presignedUrl) {
+        mc.presignedGetObject("pictures", "hiragana.jpg", function(err, presignedUrl) {
                 if (err) {return console.log(err);}
                 console.log(presignedUrl);
-                setBuckets(presignedUrl);
+                setFirstImage(presignedUrl);
+        });
+        mc.presignedGetObject("pictures", "katakana.jpg", function(err, presignedUrl) {
+                if (err) {return console.log(err);}
+                console.log(presignedUrl);
+                setSecondImage(presignedUrl);
         });
       };
 
@@ -200,8 +207,9 @@ function Home() {
         </Button>
       </Form>
       <p></p>
-      <img src={buckets} alt="Hiragana Chart" width="500" height="auto"></img>
-    </>
+        <img src={firstImage} alt="Hiragana Chart" width="700" height="auto"></img>
+        <img src={secondImage} alt="Katakana Chart" width="700" height="auto"></img>
+      </>
     );
 }
 
