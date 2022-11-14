@@ -1,13 +1,13 @@
 var express = require('express');
 var router = express.Router();
-const { Client } = require('pg');
+const { Pool, Client } = require('pg');
 
 const client = new Client({
-    user: 'postgres',
-    host: '192.168.57.12',
-    database: 'log',
-    password: 'password',
-    port: 5432,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
 });
 
 client.connect();

@@ -4,4 +4,4 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 9000
-CMD ["sleep", "1d"]
+CMD ["npm", "start"]
