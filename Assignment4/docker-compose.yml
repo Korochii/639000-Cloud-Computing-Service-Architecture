@@ -1,14 +1,25 @@
 version: "3.9"
 services:
   db:
-    build: ./db
-    ports:
-      - "5433:5432"
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: log
+    volumes:
+      - ./db/:/docker-entrypoint-initdb.d
+    networks:
+      - network-backend
   backend:
     build: ./backend
     depends_on:
       - db
     ports:
-     - "9000:9000"
-     - "8080:8080"
+      - "9000:9000"
+    networks:
+      - network-backend
+      - network-frontend
+
+networks:
+  network-frontend:
+  network-backend:
   
