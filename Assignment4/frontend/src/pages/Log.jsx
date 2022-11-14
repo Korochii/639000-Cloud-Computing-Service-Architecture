@@ -4,7 +4,7 @@ import Table from 'react-bootstrap/Table';
 function Log() {
     const [entry, setEntry] = React.useState([]);
     const getData = async () => {
-            const response = await fetch("http://192.168.57.11:9000");
+            const response = await fetch("http://localhost:9000");
             setEntry(await response.json());
     }
     React.useEffect(() => {

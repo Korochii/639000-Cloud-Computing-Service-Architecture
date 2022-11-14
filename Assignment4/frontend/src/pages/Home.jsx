@@ -15,7 +15,7 @@ function Home() {
       var formData = new FormData();
       formData.append('data', data);
       setData("");
-      axios.post('http://192.168.57.11:9000', formData)
+      axios.post('http://localhost:9000', formData)
             .then(function (response) {
               console.log(response);
             });
