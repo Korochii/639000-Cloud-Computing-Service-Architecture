@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3"
 services:
   db:
     image: postgres:12-alpine
@@ -12,6 +12,9 @@ services:
     networks:
       - network-backend
     restart: always
+    container_name: db
+    labels:
+      kompose.service.type: LoadBalancer
   backend:
     build: ./backend
     environment:
@@ -30,6 +33,9 @@ services:
       - network-backend
       - network-frontend
     restart: always
+    container_name: backend
+    labels:
+      kompose.service.type: LoadBalancer
   frontend:
     build: ./frontend
     depends_on:
@@ -42,6 +48,9 @@ services:
     networks:
       - network-frontend
     restart: always
+    container_name: frontend
+    labels:
+      kompose.service.type: LoadBalancer
   minio:
     build: ./minio
     links:
@@ -52,6 +61,9 @@ services:
     networks:
       - network-frontend
     restart: always
+    container_name: minio
+    labels:
+      kompose.service.type: LoadBalancer
 networks:
   network-frontend:
   network-backend:
