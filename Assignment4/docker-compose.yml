@@ -39,6 +39,15 @@ services:
       - 3000:3000
     networks:
       - network-frontend
+  minio:
+    build: ./minio
+    links:
+      - frontend
+    ports:
+      - 8000:8000
+      - 8001:8001
+    networks:
+      - network-frontend
 networks:
   network-frontend:
   network-backend:
