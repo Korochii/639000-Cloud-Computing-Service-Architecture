@@ -44,18 +44,18 @@ function Home() {
     const getBuckets = async () => {
         // create the client
         const mc = new minio.Client({
-          endPoint: "192.168.57.13",
-          port: 9000,
+          endPoint: "127.0.0.1",
+          port: 8000,
           useSSL: false,
           accessKey: "minioadmin",
           secretKey: "minioadmin"
         });
-        mc.presignedGetObject("pictures", "hiragana.jpg", function(err, presignedUrl) {
+        mc.presignedGetObject("buckets", "hiragana.jpg", function(err, presignedUrl) {
                 if (err) {return console.log(err);}
                 console.log(presignedUrl);
                 setFirstImage(presignedUrl);
         });
-        mc.presignedGetObject("pictures", "katakana.jpg", function(err, presignedUrl) {
+        mc.presignedGetObject("buckets", "katakana.jpg", function(err, presignedUrl) {
                 if (err) {return console.log(err);}
                 console.log(presignedUrl);
                 setSecondImage(presignedUrl);
