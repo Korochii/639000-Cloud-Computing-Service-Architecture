@@ -30,7 +30,7 @@ spec:
       containers:
         - env:
             - name: DB_HOST
-              value: db
+              value: db-tcp
             - name: DB_NAME
               value: log
             - name: DB_PASSWORD
