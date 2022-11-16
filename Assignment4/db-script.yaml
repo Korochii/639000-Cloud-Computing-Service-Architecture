@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-script
+data: 
+  init.sql: |
+    CREATE TABLE log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);

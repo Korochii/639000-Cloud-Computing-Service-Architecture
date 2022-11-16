@@ -27,7 +27,7 @@ spec:
         io.kompose.service: frontend
     spec:
       containers:
-        - image: frontend
+        - image: korochi/639000-cloud-computing-service-architecture:frontend
           name: frontend
           ports:
             - containerPort: 80

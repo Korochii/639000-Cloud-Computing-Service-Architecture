@@ -27,7 +27,7 @@ spec:
         io.kompose.service: minio
     spec:
       containers:
-        - image: minio
+        - image: korochi/639000-cloud-computing-service-architecture:minio
           name: minio
           ports:
             - containerPort: 8000

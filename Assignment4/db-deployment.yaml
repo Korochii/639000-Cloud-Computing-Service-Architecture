@@ -33,7 +33,13 @@ spec:
               value: log
             - name: POSTGRES_PASSWORD
               value: password
+            - name: POSTGRES_USER
+              value: postgres
           image: postgres:12-alpine
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/sh","-c","sleep 20 && PGPASSWORD=$POSTGRES_PASSWORD psql -w -d $POSTGRES_DB -U $POSTGRES_USER -c 'CREATE TABLE IF NOT EXISTS log(id SERIAL PRIMARY KEY, japInput TEXT, engOutput TEXT);'"]
           name: db
           ports:
             - containerPort: 5432
