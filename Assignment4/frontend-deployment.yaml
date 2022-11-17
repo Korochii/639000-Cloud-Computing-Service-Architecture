@@ -27,7 +27,16 @@ spec:
         io.kompose.service: frontend
     spec:
       containers:
-        - image: korochi/639000-cloud-computing-service-architecture:frontend
+        - env:
+          - name: BACKEND_HOST
+            value: backend-tcp
+          - name: BACKEND_PORT
+            value: "9000"
+          - name: MINIO_HOST
+            value: minio-tcp
+          - name: MINIO_PORT
+            value: "8000"
+          image: korochi/639000-cloud-computing-service-architecture:frontend
           name: frontend
           ports:
             - containerPort: 80

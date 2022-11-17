@@ -9,13 +9,14 @@ function Home() {
     const [firstImage, setFirstImage] = React.useState(null);
     const [secondImage, setSecondImage] = React.useState(null);
     const [buttonToggle, setButtonToggle] = React.useState(false);
+    const backendUrl = 'http://' + process.env.BACKEND_HOST + ':' + process.env.BACKEND_PORT;
 
     const handleSubmit = (e) => {
       e.preventDefault();
       var formData = new FormData();
       formData.append('data', data);
       setData("");
-      axios.post('http://localhost:9000', formData)
+      axios.post(backendUrl, formData)
             .then(function (response) {
               console.log(response);
             });
@@ -44,8 +45,8 @@ function Home() {
     const getBuckets = async () => {
         // create the client
         const mc = new minio.Client({
-          endPoint: "127.0.0.1",
-          port: 8000,
+          endPoint: process.env.MINIO_HOST,
+          port: process.env.MINIO_PORT,
           useSSL: false,
           accessKey: "minioadmin",
           secretKey: "minioadmin"

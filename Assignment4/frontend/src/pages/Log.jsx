@@ -3,8 +3,9 @@ import Table from 'react-bootstrap/Table';
 
 function Log() {
     const [entry, setEntry] = React.useState([]);
+    const backendUrl = 'http://' + process.env.BACKEND_HOST + ':' + process.env.BACKEND_PORT;
     const getData = async () => {
-            const response = await fetch("http://localhost:9000");
+            const response = await fetch(backendUrl);
             setEntry(await response.json());
     }
     React.useEffect(() => {
