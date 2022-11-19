@@ -40,8 +40,10 @@ services:
     build: ./frontend
     depends_on:
       - backend
+      - minio
     links:
       - backend
+      - minio
     ports:
       - 8080:80
       - 3000:3000
@@ -53,8 +55,6 @@ services:
       kompose.service.type: LoadBalancer
   minio:
     build: ./minio
-    links:
-      - frontend
     ports:
       - 8000:8000
       - 8001:8001
